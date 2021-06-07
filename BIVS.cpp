@@ -1,0 +1,1 @@
+// this is the cpp file for running BIVS. Let's use one file and specify the activation function as input

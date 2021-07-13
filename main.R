@@ -11,10 +11,10 @@ N = 5000
 n = 500
 p = 10
 signal_level = 3
-T_function = "step"
+T_function = "step" # choices are "step" and "relu"
 data_pre_process = FALSE
 set.seed(91817)
-nsplit <- 16
+nsplit <- 16 # number of splits to test for MSE
 
 for(iii in 1:1){
   beta_true = rnorm(p)
@@ -40,10 +40,7 @@ for(iii in 1:1){
   }
 
 
-  # ind = sample(1:n,n)
-  # X0 = X0[ind,]
-  # y0 = y0[ind]
-  
+  # getting all the interactions
   X1_intr = NULL
   for(j in 1:(length(1:p)-1)){
     for(k in (j+1):(length(1:p))){
@@ -63,13 +60,13 @@ for(iii in 1:1){
     X0 = xall
     y0 = yall
     n = nrow(xall)
-    print(n)
-    otr <- tr[[i0]]
-    ind_test = (1:n)[-otr]
+    # print(n)
+    otr <- tr[[i0]] # training set
+    ind_test = (1:n)[-otr] # test set
     n_test = length(ind_test)
-    print(n_test)
-    n = n - n_test
-    print(n)
+    # print(n_test)
+    n = n - n_test # n is not |training set|
+    # print(n)
     X = X0[-ind_test,]
     y = matrix(y0[-ind_test],n,1)
     X_test = X0[ind_test,]
@@ -86,19 +83,20 @@ for(iii in 1:1){
     n = nrow(X)
     p = ncol(X)
     
-    a0_cand = c(0.5,1,1.3,1.5,1.7,2,2.2,2.5,3,3.4,3.7,4)
-    a0_cand = c(-a0_cand, a0_cand)
-    
     # try fully specified first
+    # a0_cand = c(0.5,1,1.3,1.5,1.7,2,2.2,2.5,3,3.4,3.7,4)
+    # a0_cand = c(-a0_cand, a0_cand) # values in CV
+    # try fully specified first
+    
     a0_cand = 0
     sig = matrix(1,1,1)
     
-    K = 5
+    K = 5 # CV fold to pick parameters
     rspe_bivs0 = post = rep(0,5)
     size_bivs0 = rep(0,5)
-    print(n)
+    # print(n)
     size = floor(n/K)
-    print(size)
+    # print(size)
     cv.err = matrix(0,K,length(a0_cand))
     for(v in 1:length(a0_cand)){
       a0 = b0 = a0_cand[v]

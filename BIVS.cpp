@@ -135,6 +135,7 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
   for(i=0; i<(N+BURN); i++){
     beta0 = beta00;
     res = y - y_hat;
+    sam = RcppArmadillo::sample(sam1, p, FALSE, NumericVector::create());
     for(ii=0; ii<p; ii++){
       j = sam(ii);
       res = res +  (X.col(j) % THETA.col(j));
@@ -143,25 +144,32 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
       for(k=0; k<n; k++){
         aa = alpha(j) + u(k)*zeta(j) - alpha0;
         theta_sj(k) = T_fun(aa,type);
-        if( aa > 0 ){
+        if( aa > 0.0 ){
           rx(0) = rx(0) + res(k)*X(k,j)*theta_sj(k);
           //theta_sj(k) = 1.0;
           a_sq = a_sq + X(k,j)*X(k,j)*theta_sj(k)*theta_sj(k);
-        }else{
+          //}else{
           //theta_sj(k) = 0.0;
         }
-        ;
       }
       S = 1.0 / (a_sq + 1.0/tau_w);
       mu1 = rx(0)*S;
       r(0) = R::rnorm( 0.0 , 1.0 );
       w(j) = mu1 + sqrt(sig(0)*S)*r(0);
       THETA.col(j) = theta_sj*w(j);
+      for(ii=0; ii<n; ii++){
+        aa = alpha(j) + u(ii)*zeta(j) - alpha0;
+        bb = T_fun(aa,type);
+        if( aa > 0.0 ){
+          THETA(ii,j) =  bb*w(j);
+        }else{
+          THETA(ii,j) = 0.0;
+        }
+      }
       res = res -  (X.col(j) % THETA.col(j));
     }
     y_hat = y - res;
     
-    res = y - y_hat;
     // sample alpha and w
     sam = RcppArmadillo::sample(sam1, p, FALSE, NumericVector::create());
     for(ii=0; ii<p; ii++){
@@ -181,13 +189,12 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
           aa = alpha(j) + u(k)*zeta(j) - alpha0;
           theta_sj_curr(k) = T_fun(aa,type)*w(j);
           if( aa > 0.0 ){
-            rx_curr(0) = rx_curr(0) + res(k)*X(k,j)*T_fun(aa,type)*w(j);
-            a_sq_curr = a_sq_curr + X(k,j)*X(k,j)*T_fun(aa,type)*T_fun(aa,type)*w(j)*w(j);
+            rx_curr(0) = rx_curr(0) + res(k)*X(k,j)*theta_sj_curr(k);
+            a_sq_curr = a_sq_curr + X(k,j)*X(k,j)*theta_sj_curr(k)*theta_sj_curr(k);
           }//else{
-            //theta_sj_curr(k) = 0.0;
+          //theta_sj_curr(k) = 0.0;
           //  theta_sj_curr(k) = T_fun(aa,type)*w(j);
           //}
-          
         }
         //curr = -0.5*log(a_sq_curr + 1.0/tau_w) - 0.5*alpha(j)*alpha(j) + 0.5*rx_curr*rx_curr/(a_sq_curr + 1.0/tau_w)/sig(0);
         curr(0) = -0.5*(a_sq_curr - 2*rx_curr(0))/sig(0) - 0.5*alpha(j)*alpha(j) - 0.5*w(j)*w(j)/(sig(0)*tau_w);
@@ -196,18 +203,17 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
         a_sq_cand = 0.0;
         for(k=0; k<n; k++){
           aa = alpha_cand + u(k)*zeta(j) - alpha0;
+          theta_sj_cand(k) = T_fun(aa,type)*w_cand;
           if( aa > 0.0 ){
-            rx_cand(0) = rx_cand(0) + res(k)*X(k,j)*T_fun(aa,type)*w_cand;
+            rx_cand(0) = rx_cand(0) + res(k)*X(k,j)*theta_sj_cand(k);
             //theta_sj_cand(k) = w_cand;
-            theta_sj_cand(k) = T_fun(aa,type)*w_cand;
-            a_sq_cand = a_sq_cand + X(k,j)*X(k,j)*T_fun(aa,type)*T_fun(aa,type)*w_cand*w_cand;
-          }else{
-            theta_sj_cand(k) = T_fun(aa,type)*w_cand;
-          }
+            a_sq_cand = a_sq_cand + X(k,j)*X(k,j)*theta_sj_cand(k)*theta_sj_cand(k);
+          }//else{
+          //  theta_sj_cand(k) = T_fun(aa,type)*w_cand;
+          //}
         }
         //curr = -0.5*log(a_sq_curr + 1.0/tau_w) - 0.5*alpha(j)*alpha(j) + 0.5*rx_curr*rx_curr/(a_sq_curr + 1.0/tau_w)/sig(0);
         cand(0) = -0.5*(a_sq_cand - 2*rx_cand(0))/sig(0) - 0.5*alpha_cand*alpha_cand - 0.5*w_cand*w_cand/(sig(0)*tau_w);
-        
         aa = R::runif( 0.0, 1.0);
         ratio = cand(0) - curr(0);
         if(ratio > log(aa) ){
@@ -218,7 +224,6 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
         }
         res = res -   (X.col(j) % THETA.col(j));
       }
-      
       y_hat = y - res;
     }
     for(ii=0; ii<n; ii++){
@@ -238,7 +243,6 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
       z_cand = z;
       for(jj0=0; jj0<p; jj0++){
         jj = sam(jj0);
-        
         beta_cand(jj) = beta(jj) + R::rnorm( 0.0 , 1.0 )*size_b;
         z_cand(jj) = z(jj) + R::rnorm( 0.0 , 1.0 )*size_b/10.0;
         // update u
@@ -257,12 +261,12 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
           aa = 0.0;
           for(j=0; j<p; j++){
             bb = alpha(j) + u_cand(ii)*zeta(j) - alpha0;
+            T_a =  T_fun(bb, type)*w(j);
             if(bb > 0.0){
-              T_a =  T_fun(bb, type)*w(j);
               aa = aa + X(ii,j)*T_a*w(j);
-            }else{
-              T_a =  T_fun(bb,type)*w(j);
-            }
+            }//else{
+            //  T_a =  T_fun(bb,type)*w(j);
+            //}
           }
           res_cand(ii) = y(ii) - aa;
         }
@@ -282,12 +286,12 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
           aa = 0.0;
           for(j=0; j<p; j++){
             bb = alpha(j) + u_curr(ii)*zeta(j) - alpha0;
+            T_a =  T_fun(bb,type)*w(j);
             if(bb > 0.0){
-              T_a =  T_fun(bb,type)*w(j);
               aa = aa + X(ii,j)*T_a*w(j);
-            }else{
-              T_a =  T_fun(bb,type)*w(j);
-            }
+            }//else{
+            //  T_a =  T_fun(bb,type)*w(j);
+            //}
           }
           res(ii) = y(ii) - aa;
         }
@@ -331,9 +335,6 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
         //}
       }
     }
-    res = y - y_hat;
-    // update zeta
-    
     for(j=0; j<p; j++){
       if(beta(j) > beta0){
         T_b = beta(j) - beta0;
@@ -344,13 +345,13 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
       }
       theta2(j) =  T_b*z(j);
     }
-    for(ii=0; ii<n; ii++){
-      aa = 0.0;
-      for(j=0; j<p; j++){
-        aa = aa + X(ii,j)*THETA(ii,j);
-      }
-      y_hat(ii) = aa;
-    }
+    //for(ii=0; ii<n; ii++){
+    //  aa = 0.0;
+    //  for(j=0; j<p; j++){
+    //    aa = aa + X(ii,j)*THETA(ii,j);
+    //  }
+    //  y_hat(ii) = aa;
+    //}
     res = y - y_hat;
     
     //update sig(0)
@@ -364,8 +365,8 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
     }
     for(ii=0; ii<n; ii++){
       for(j=0; j<p; j++){
-        aa = alpha(j) + u(ii) - alpha0;
-        if( aa > 0 ){
+        aa = alpha(j) + u(ii)*zeta(j) - alpha0;
+        if( aa > 0.0 ){
           GAM(ii,j) =  1.0;
         }else{
           GAM(ii,j) = 0.0;

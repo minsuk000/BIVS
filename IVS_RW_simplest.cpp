@@ -6,9 +6,32 @@
 
 using namespace Rcpp;
 
-// type 1 : Linear activation (Approximately Bayesian LASSO); t/alpha0
-// type 2 : Exponetial activation (Approximately horseshoe prior); exp( 0.5*t*|t| + alpha0*t )
-// type 3 : ReLU; max(t,alpha0)
+double T_fun(const double& x, const double& alpha0, const int& type){
+  double act;
+  if(type == 1){ act = x; }
+  if(type == 2){
+    act = exp( 0.37*x*abs(x)  + 0.89*x + 0.08 );
+  }
+  if(type == 3){
+    if(x > alpha0){
+      act = x-alpha0;
+    }else{
+      act = 0.0;
+    }
+  }
+  if(type == 4){
+    if(x > alpha0){
+      act = exp( 0.37*(x-alpha0)*(x-alpha0)  + 0.94*abs(x-alpha0) - 0.48 );
+    }else{
+      act = 0.0;
+    }
+  }
+  return (act);
+}
+
+
+// type 1 : Step function 0 or 1
+// type 2 : ReLU; max(t,alpha0)
 
 // [[Rcpp::export]]
 Rcpp::List IVS_RW_simplest(const arma::vec & y, const arma::mat & X, int  N, double N1,

@@ -1,10 +1,9 @@
 # main file
-
 library(NPrior)
 library(hierNet)
 library(glmnet)
 library(MASS)
-source(generate_data.r)
+source("generate_data.r")
 
 BURN = 2000
 N = 5000
@@ -91,7 +90,7 @@ BIVS_boston = function(i0, tr, xall, yall, X1_intr, N, BURN, i){
       #                          size_a=3, size_b=3, sig_update=1,
       #                          K = 10, L = 10, zeta_update = 1)
       # WE SHOULD USE JUST ONE CPP FUNCTION FOR FITTING, SPECIFYING OTHERS AS ARGUMENTS
-      fit.RW = BIVS('RW', 'naive', y_tr, X_tr,  N, N1=N,
+      fit.RW = BIVS(type= 1, y_tr, X_tr,  N, N1=N,
                     BURN, alpha_true, zeta_true,
                     w_true, beta_true, z_true,
                     sig, n1=n, p1=p, tau_w=1,
@@ -149,7 +148,7 @@ BIVS_boston = function(i0, tr, xall, yall, X1_intr, N, BURN, i){
     sig = matrix(1,1,1)
     # fit.RW = IVS_RW_new(y, X,y,X,N,N1=N,BURN,alpha,w,beta, z,gamma,v,sig, n1=n, p1=p, tau_w=1,tau_z=1,tau_v=1,
     #                                        alpha0, beta0, gamma0,size_a=3, size_b=3, sig_update=1, zeta_update=0, K=5, L=5)
-    fit.RW = BIVS('RW', 'naive', y, X, N, N1=N,
+    fit.RW = BIVS(type=1, y, X, N, N1=N,
                              BURN, alpha, zeta,
                              w, beta, z,
                              sig, n1=n, p1=p, tau_w=1,
@@ -203,7 +202,7 @@ BIVS_boston = function(i0, tr, xall, yall, X1_intr, N, BURN, i){
       sig = matrix(1,1,1)
       
       pmt = proc.time()[3]
-      fit.RW = BIVS('RW', 'simplest', y_tr, X_tr, N ,N1=N,BURN,alpha,zeta,w,beta, z,sig, n1=n, p1=p, tau_w=1,tau_z=1,
+      fit.RW = BIVS(type=1, y_tr, X_tr, N ,N1=N,BURN,alpha,zeta,w,beta, z,sig, n1=n, p1=p, tau_w=1,tau_z=1,
                                a0, b0, size_a=3, size_b=3, sig_update=1, zeta_update=0,
                                K=10, L=10)
       pmt0 = proc.time()[3] - pmt
@@ -244,7 +243,7 @@ BIVS_boston = function(i0, tr, xall, yall, X1_intr, N, BURN, i){
     z = rep(0,p);#rnorm(p)
     zeta= rep(0,p);#rep(1,p)
     sig = matrix(1,1,1)
-    fit.RW = BIVS('RW', 'simplest', y, X,  N, N1=N, BURN, alpha, zeta, w,
+    fit.RW = BIVS(type=1, y, X,  N, N1=N, BURN, alpha, zeta, w,
                              beta,  z, sig, n1 = n, p1 = p, tau_w=1, tau_z=1,
                              alpha0=a0, beta0=b0, size_a=3, size_b=3, sig_update=1, zeta_update=0,
                              K=10, L=10)
@@ -394,7 +393,7 @@ for(iii in 1:1){
   zeta_true = rnorm(p)
   
   X0 = matrix(rnorm(n*p), ncol = p)
-  y0 = generate_mean(alpha_true, alpha0, zeta_true, w_true, theta_star_true, X0) + rnorm(n)*sqrt(sig0)
+  y0 = generate_mean(alpha_true, alpha0, zeta_true, w_true, theta_star_true, X0, T_function="step") + rnorm(n)*sqrt(sig0)
   
   if(data_pre_process){
     X0 = scale(X0)
@@ -430,11 +429,9 @@ for(iii in 1:1){
   sfLibrary(glmnet)
   sfLibrary(Rcpp)
   sfExportAll()
-  sfClusterEval(Rcpp::sourceCpp('IVS_RW_simplest.cpp'))
-  sfClusterEval(Rcpp::sourceCpp('IVS_RW_naive000.cpp'))
-  # sfClusterEval(Rcpp::sourceCpp("IVS_RW_new.cpp"))
-  # sfClusterEval(Rcpp::sourceCpp("IVS_RW_multiple_N.cpp"))
-  
+  #sfClusterEval(Rcpp::sourceCpp('IVS_RW_simplest.cpp'))
+  #sfClusterEval(Rcpp::sourceCpp('IVS_RW_naive000.cpp'))
+  sfClusterEval(Rcpp::sourceCpp('BIVS.cpp'))
   #sfExportAll()
   #res_ind = 13:18
   #sss = BIVS_boston(1, tr, X0, y0, X1_intr,N, BURN, 1)

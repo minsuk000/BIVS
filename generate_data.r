@@ -50,7 +50,7 @@ generate_THETA = function(alp, alp0, zeta, w, theta_star, covariates, T_function
     return(THETAA)
 }
   
-generate_mean = function(alp, alp0, zeta, w, theta_star, covariates){
-    THETAA = generate_THETA(alp, alp0, zeta, w, theta_star, covariates)
+generate_mean = function(alp, alp0, zeta, w, theta_star, covariates, T_function){
+    THETAA = generate_THETA(alp, alp0, zeta, w, theta_star, covariates, T_function)
     return(apply(covariates*THETAA,1,sum))
 }

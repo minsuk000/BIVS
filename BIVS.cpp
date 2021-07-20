@@ -93,7 +93,7 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
     sam1(j) = j;
     zeta(j) = 1.0;
     X_norm(j) = sum(X.col(j) % X.col(j));
-    theta0(j) = T_fun(beta(j) - beta0) * z(j)
+    theta0(j) = T_fun(beta(j) - beta0, type) * z(j)
     gam_alpha(j) = 0.0;
     gam_beta(j) = 0.0;
   }
@@ -104,7 +104,7 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
   for(ii=0; ii<n; ii++){
     for(j=0; j<p; j++){
       aa = alpha(j) + u(ii)*zeta(j)  - alpha0;
-      THETA(ii, j) = T_fun(aa) * w(j);
+      THETA(ii, j) = T_fun(aa, type) * w(j);
       THETA_save(ii,j) = 0.0;
       GAM_save(ii,j) = 0.0;
       theta2_save(j) = 0.0;

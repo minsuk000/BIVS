@@ -7,6 +7,7 @@
 using namespace Rcpp;
 
 double T_fun(const double& x, const int& type){
+    // CHANGE SECOND ARGUMENT TO STRING
   double act;
   if(type == 1){
     if(x > 0.0){
@@ -92,26 +93,18 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
     sam1(j) = j;
     zeta(j) = 1.0;
     X_norm(j) = sum(X.col(j) % X.col(j));
-    if(beta(j)>beta0){
-      theta0(j) = (beta(j)-beta0)*z(j);
-    }else{
-      theta0(j) = 0.0;
-    }
+    theta0(j) = T_fun(beta(j) - beta0) * z(j)
     gam_alpha(j) = 0.0;
     gam_beta(j) = 0.0;
   }
   u = X*theta0;
-  arma::uvec ind_beta = arma::find(gam_beta == 1.0);
-  arma::uvec ind_alpha = arma::find(gam_alpha == 1.0);
+  arma::uvec ind_beta = arma::find(gam_beta == 1.0); //PLEASE ADD COMMENTS
+  arma::uvec ind_alpha = arma::find(gam_alpha == 1.0); //PLEASE ADD COMMENTS
   
   for(ii=0; ii<n; ii++){
     for(j=0; j<p; j++){
       aa = alpha(j) + u(ii)*zeta(j)  - alpha0;
-      if( aa > 0.0 ){
-        THETA(ii,j) =  w(j);
-      }else{
-        THETA(ii,j) = 0.0;
-      }
+      THETA(ii, j) = T_fun(aa) * w(j);
       THETA_save(ii,j) = 0.0;
       GAM_save(ii,j) = 0.0;
       theta2_save(j) = 0.0;
@@ -125,7 +118,7 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
     for(j=0; j<p; j++){
       aa = aa + X(ii,j)*THETA(ii,j);
     }
-    y_hat(ii) = aa;
+    y_hat(ii) = aa; //y_hat = X*THETA
   }
   Timer timer;
   //  alpha00 = alpha0;
@@ -135,7 +128,7 @@ Rcpp::List BIVS(const int& type, const arma::vec & y, const arma::mat & X, int  
   for(i=0; i<(N+BURN); i++){
     beta0 = beta00;
     res = y - y_hat;
-    sam = RcppArmadillo::sample(sam1, p, FALSE, NumericVector::create());
+    sam = RcppArmadillo::sample(sam1, p, FALSE, NumericVector::create()); //PLEASE ADD COMMENTS
     for(ii=0; ii<p; ii++){
       j = sam(ii);
       res = res +  (X.col(j) % THETA.col(j));
